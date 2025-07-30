@@ -9,17 +9,17 @@ services:
     buildCommand: ""
     startCommand: ""
     envVars:
-      - key: DB_HOST_REPLACE_ME
+      - key: postgresql://odoouser:iGJ43xbvIf6FgfliB8JLdklE6HAyiOJW@dpg-d253g9re5dus73f7c9a0-a/odoodatabase
         fromService:
           name: odoo-postgres
           type: postgres
           property: host
-      - key: DB_USER_REPLACE_ME
+      - key: odoouser
         fromService:
           name: odoo-postgres
           type: postgres
           property: user
-      - key: DB_PASSWORD_REPLACE_ME
+      - key: iGJ43xbvIf6FgfliB8JLdklE6HAyiOJW
         fromService:
           name: odoo-postgres
           type: postgres
