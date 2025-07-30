@@ -5,16 +5,18 @@ ENV LC_ALL C.UTF-8
 ENV ODOO_VERSION 15.0
 ENV ODOO_USER odoo
 ENV ODOO_HOME /opt/odoo
-
+	
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    apt-utils gnupg2 dirmngr ca-certificates software-properties-common \
     git wget curl node-less npm netcat \
     libpq-dev python3-dev libxml2-dev libxslt1-dev \
     libldap2-dev libsasl2-dev libffi-dev libjpeg-dev \
     libpng-dev zlib1g-dev libjpeg8-dev liblcms2-dev \
     libblas-dev libatlas-base-dev libssl-dev \
     libtiff-dev libwebp-dev gcc make build-essential \
-    xz-utils ca-certificates \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    xz-utils \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
 RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.5-1/wkhtmltox_0.12.5-1.buster_amd64.deb && \
     apt install -y ./wkhtmltox_0.12.5-1.buster_amd64.deb && \
