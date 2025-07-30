@@ -51,6 +51,7 @@ RUN apt-get update && apt-get install -y \
     libfribidi-dev \
     libxcb1-dev \
     wkhtmltopdf \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Install rtlcss (required for Right-to-Left languages)
@@ -86,106 +87,96 @@ RUN pip3 install --user --no-cache-dir \
 # Switch back to root for final configurations
 USER root
 
-# Copy configuration file
-COPY --chown=$ODOO_USER:$ODOO_USER odoo.conf $ODOO_CONFIG_DIR/
-
 # Create entrypoint script
-RUN cat > /entrypoint.sh << 'EOF'
-#!/bin/bash
-set -e
-
-# Function to wait for PostgreSQL
-wait_for_postgres() {
-    echo "Waiting for PostgreSQL..."
-    while ! python3 -c "
-import psycopg2
-import os
-try:
-    conn = psycopg2.connect(
-        host=os.environ.get('DB_HOST', 'localhost'),
-        port=os.environ.get('DB_PORT', '5432'),
-        user=os.environ.get('DB_USER', 'odoo'),
-        password=os.environ.get('DB_PASSWORD', ''),
-        dbname='postgres'
-    )
-    conn.close()
-    print('PostgreSQL is ready!')
-    exit(0)
-except Exception as e:
-    print(f'PostgreSQL not ready: {e}')
-    exit(1)
-"; do
-        sleep 5
-    done
-}
-
-# Wait for database if DB_HOST is set
-if [ -n "$DB_HOST" ]; then
-    wait_for_postgres
-fi
-
-# Generate configuration file from environment variables
-cat > /etc/odoo/odoo.conf << EOL
-[options]
-addons_path = /opt/odoo/odoo/addons
-data_dir = /var/lib/odoo
-logfile = /var/log/odoo/odoo.log
-log_level = ${LOG_LEVEL:-info}
-
-# Database settings
-db_host = ${DB_HOST:-localhost}
-db_port = ${DB_PORT:-5432}
-db_user = ${DB_USER:-odoo}
-db_password = ${DB_PASSWORD:-}
-db_sslmode = ${DB_SSLMODE:-prefer}
-
-# Server settings
-http_port = ${PORT:-8069}
-http_interface = 0.0.0.0
-proxy_mode = True
-
-# Security
-admin_passwd = ${ADMIN_PASSWORD:-admin}
-list_db = ${LIST_DB:-False}
-
-# Performance
-max_cron_threads = ${MAX_CRON_THREADS:-2}
-workers = ${WORKERS:-0}
-limit_memory_hard = ${LIMIT_MEMORY_HARD:-2684354560}
-limit_memory_soft = ${LIMIT_MEMORY_SOFT:-2147483648}
-limit_request = ${LIMIT_REQUEST:-8192}
-limit_time_cpu = ${LIMIT_TIME_CPU:-60}
-limit_time_real = ${LIMIT_TIME_REAL:-120}
-limit_time_real_cron = ${LIMIT_TIME_REAL_CRON:-300}
-
-# Additional options
-without_demo = ${WITHOUT_DEMO:-True}
-csv_internal_sep = ,
-EOL
-
-# Ensure proper ownership
-chown -R odoo:odoo /var/lib/odoo /var/log/odoo /etc/odoo
-
-# Execute command as odoo user
-exec gosu odoo "$@"
-EOF
-
-# Install gosu for better su functionality
-RUN apt-get update && apt-get install -y gosu && rm -rf /var/lib/apt/lists/*
+RUN printf '#!/bin/bash\n\
+set -e\n\
+\n\
+# Function to wait for PostgreSQL\n\
+wait_for_postgres() {\n\
+    echo "Waiting for PostgreSQL..."\n\
+    while ! python3 -c "\n\
+import psycopg2\n\
+import os\n\
+try:\n\
+    conn = psycopg2.connect(\n\
+        host=os.environ.get('\''DB_HOST'\'', '\''localhost'\''),\n\
+        port=os.environ.get('\''DB_PORT'\'', '\''5432'\''),\n\
+        user=os.environ.get('\''DB_USER'\'', '\''odoo'\''),\n\
+        password=os.environ.get('\''DB_PASSWORD'\'', '\'\''),\n\
+        dbname='\''postgres'\''\n\
+    )\n\
+    conn.close()\n\
+    print('\''PostgreSQL is ready!'\'')\n\
+    exit(0)\n\
+except Exception as e:\n\
+    print(f'\''PostgreSQL not ready: {e}'\'')\n\
+    exit(1)\n\
+"; do\n\
+        sleep 5\n\
+    done\n\
+}\n\
+\n\
+# Wait for database if DB_HOST is set\n\
+if [ -n "$DB_HOST" ]; then\n\
+    wait_for_postgres\n\
+fi\n\
+\n\
+# Generate configuration file from environment variables\n\
+cat > /etc/odoo/odoo.conf << EOL\n\
+[options]\n\
+addons_path = /opt/odoo/odoo/addons\n\
+data_dir = /var/lib/odoo\n\
+logfile = /var/log/odoo/odoo.log\n\
+log_level = ${LOG_LEVEL:-info}\n\
+\n\
+# Database settings\n\
+db_host = ${DB_HOST:-localhost}\n\
+db_port = ${DB_PORT:-5432}\n\
+db_user = ${DB_USER:-odoo}\n\
+db_password = ${DB_PASSWORD:-}\n\
+db_sslmode = ${DB_SSLMODE:-prefer}\n\
+\n\
+# Server settings\n\
+http_port = ${PORT:-8069}\n\
+http_interface = 0.0.0.0\n\
+proxy_mode = True\n\
+\n\
+# Security\n\
+admin_passwd = ${ADMIN_PASSWORD:-admin}\n\
+list_db = ${LIST_DB:-False}\n\
+\n\
+# Performance\n\
+max_cron_threads = ${MAX_CRON_THREADS:-2}\n\
+workers = ${WORKERS:-0}\n\
+limit_memory_hard = ${LIMIT_MEMORY_HARD:-2684354560}\n\
+limit_memory_soft = ${LIMIT_MEMORY_SOFT:-2147483648}\n\
+limit_request = ${LIMIT_REQUEST:-8192}\n\
+limit_time_cpu = ${LIMIT_TIME_CPU:-60}\n\
+limit_time_real = ${LIMIT_TIME_REAL:-120}\n\
+limit_time_real_cron = ${LIMIT_TIME_REAL_CRON:-300}\n\
+\n\
+# Additional options\n\
+without_demo = ${WITHOUT_DEMO:-True}\n\
+csv_internal_sep = ,\n\
+EOL\n\
+\n\
+# Ensure proper ownership\n\
+chown -R odoo:odoo /var/lib/odoo /var/log/odoo /etc/odoo\n\
+\n\
+# Execute command as odoo user\n\
+exec gosu odoo "$@"\n' > /entrypoint.sh
 
 # Make entrypoint executable
 RUN chmod +x /entrypoint.sh
 
-# Create basic odoo.conf template (will be overridden by entrypoint)
-RUN cat > $ODOO_CONFIG_DIR/odoo.conf << 'EOF'
-[options]
-addons_path = /opt/odoo/odoo/addons
-data_dir = /var/lib/odoo
-logfile = /var/log/odoo/odoo.log
-http_port = 8069
-http_interface = 0.0.0.0
-proxy_mode = True
-EOF
+# Create basic odoo.conf template
+RUN printf '[options]\n\
+addons_path = /opt/odoo/odoo/addons\n\
+data_dir = /var/lib/odoo\n\
+logfile = /var/log/odoo/odoo.log\n\
+http_port = 8069\n\
+http_interface = 0.0.0.0\n\
+proxy_mode = True\n' > $ODOO_CONFIG_DIR/odoo.conf
 
 # Set proper ownership for config
 RUN chown $ODOO_USER:$ODOO_USER $ODOO_CONFIG_DIR/odoo.conf
@@ -205,4 +196,3 @@ ENTRYPOINT ["/entrypoint.sh"]
 
 # Default command
 CMD ["python3", "odoo/odoo-bin", "-c", "/etc/odoo/odoo.conf"]
-
