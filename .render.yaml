@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: odoo15
+    env: docker
+    region: oregon
+    plan: starter
+    branch: main
+    dockerfilePath: ./Dockerfile
+    buildCommand: ""
+    startCommand: ""
+    envVars:
+      - key: DB_HOST_REPLACE_ME
+        fromService:
+          name: odoo-postgres
+          type: postgres
+          property: host
+      - key: DB_USER_REPLACE_ME
+        fromService:
+          name: odoo-postgres
+          type: postgres
+          property: user
+      - key: DB_PASSWORD_REPLACE_ME
+        fromService:
+          name: odoo-postgres
+          type: postgres
+          property: password
+
+volumes:
+  - name: odoo-data
+    mountPath: /opt/odoo/.local/share/Odoo
