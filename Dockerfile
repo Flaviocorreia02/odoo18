@@ -108,17 +108,18 @@ RUN printf '[options]\n\
 addons_path = /opt/odoo/odoo/addons\n\
 data_dir = /var/lib/odoo\n\
 logfile = /var/log/odoo/odoo.log\n\
-http_port = 8069\n\
+http_port = ${PORT:-8069}\n\
 http_interface = 0.0.0.0\n\
 proxy_mode = True\n' > $ODOO_CONFIG_DIR/odoo.conf \
     && chown $ODOO_USER:$ODOO_USER $ODOO_CONFIG_DIR/odoo.conf
 
-EXPOSE 8069
+EXPOSE ${PORT:-8069}
+
 WORKDIR $ODOO_HOME
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
-  CMD curl -f http://0.0.0.0:${PORT:-8069}/web/health || exit 1
+  CMD curl -f http://localhost:${PORT:-8069}/web/health || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python3", "odoo/odoo-bin", "-c", "/etc/odoo/odoo.conf"]
