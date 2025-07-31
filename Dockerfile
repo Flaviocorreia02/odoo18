@@ -71,7 +71,7 @@ set -e\n\
 # Wait for PostgreSQL\n\
 if [ -n "$DB_HOST" ]; then\n\
     echo "Waiting for PostgreSQL..."\n\
-    while ! python3 -c "import psycopg2; psycopg2.connect(host='\''$DB_HOST'\'', port='\''${DB_PORT:-5432}'\'', user='\''${DB_USER:-odoo}'\'', password='\''$DB_PASSWORD'\'', dbname='\''postgres'\'')" 2>/dev/null; do\n\
+    while ! python3 -c "import psycopg2; psycopg2.connect(host='\''$DB_HOST'\'', port='\''${DB_PORT:-5432}'\'', user='\''${DB_USER:-odoo}'\'', password='\''$DB_PASSWORD'\'', dbname='\''odoodatabase'\'')" 2>/dev/null; do\n\
         sleep 2\n\
     done\n\
     echo "PostgreSQL is ready!"\n\
